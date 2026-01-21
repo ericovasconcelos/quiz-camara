@@ -1,20 +1,23 @@
 # Configuração Necessária no Netlify
 
-Para que o login e o banco de dados funcionem corretamente, você precisa ativar o **Identity** no painel do Netlify.
+## 1. Ativar Login (Identity)
+Para que o login e o cadastro funcionem:
+1.  Acesse [app.netlify.com](https://app.netlify.com).
+2.  Vá em **Site configuration** > **Identity**.
+3.  Clique em **"Enable Identity"**.
+4.  Em "Registration preferences", mantenha como "Open".
 
-### Passo a Passo:
+## 2. Conectar Banco de Dados (Variáveis de Ambiente)
+**CRÍTICO:** Para que o Ranking e o Histórico funcionem, você precisa adicionar o endereço do banco de dados no Netlify.
 
-1.  Acesse o painel do seu site em [app.netlify.com](https://app.netlify.com).
-2.  Vá em **Site configuration** > **Identity** (no menu lateral).
-3.  Clique no botão **"Enable Identity"**.
-4.  (Opcional) Em **"Registration preferences"**, verifique se está como "Open" (padrão) para permitir que você crie sua conta.
-5.  (Opcional) Em **"External providers"**, você pode ativar login com Google ou GitHub se preferir.
+1.  No painel do Netlify, vá em **Site configuration** > **Environment variables**.
+2.  Clique em **"Add a variable"**.
+3.  **Key**: `DATABASE_URL`
+4.  **Value**: (Cole o mesmo valor que você tem no seu arquivo `.env` local)
+    *   *Exemplo:* `postgresql://neondb_owner:...........@ep-cool-cloud.us-east-2.aws.neon.tech/neondb?sslmode=require`
+5.  Clique em **Create variable**.
 
-### Testando
-
-1.  Após ativar, acesse a URL do seu jogo (ex: `https://quiz-camara.netlify.app`).
-2.  Talvez seja necessário fazer um novo deploy (vá em Deploys > Trigger deploy) para garantir que tudo se conecte, mas geralmente funciona na hora.
-3.  Clique em **Login / Signup** no canto superior direito do jogo.
-4.  Crie sua conta e confirme o email (se solicitado).
-
-Agora você terá acesso ao histórico e ranking!
+## 3. Redeploy
+Após adicionar a variável, faça um novo deploy para garantir que as funções peguem o novo valor:
+1.  Vá em **Deploys**.
+2.  Clique em **Trigger deploy** > **Deploy site**.
