@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Quiz interativo para estudo de Direito Constitucional e Regimento Interno da Câmara dos Deputados">
+    <title>Quiz Câmara dos Deputados</title>
+    <!-- Social Meta Tags -->
+    <meta property="og:title" content="Quiz Câmara dos Deputados">
+    <meta property="og:description"
+        content="Prepare-se para o concurso da Câmara! Teste seus conhecimentos em Direito Constitucional e Regimento Interno neste quiz interativo.">
+    <meta property="og:url" content="https://quiz-camara.netlify.app/"> <!-- Placeholder URL -->
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#1a3a52">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #1e2838;
+            font-family: 'Poppins', Arial, sans-serif;
+            color: #ffffff;
+        }
+
+        #game-container {
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container"></div>
+
+    <script src="questions.js"></script>
+    <script src="game.js"></script>
+
+</body>
+
+</html>
