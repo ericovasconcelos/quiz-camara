@@ -22,6 +22,7 @@ export default async (req, context) => {
         const inserted = await db.insert(quizzes).values({
             userId: user.sub,
             title: data.title,
+            settings: data.config || {}, // Save config as settings
             questions: data.questions,
         }).returning();
 

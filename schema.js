@@ -4,6 +4,7 @@ export const quizzes = pgTable("quizzes", {
     id: serial("id").primaryKey(),
     userId: text("user_id").notNull(),
     title: text("title").notNull(),
+    settings: jsonb("settings"), // { timeLimit: number, questionLimit: number }
     questions: jsonb("questions").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });

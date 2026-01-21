@@ -94,6 +94,11 @@ async function processImport() {
             throw new Error("Formato inválido. O JSON deve ter 'title' e um array de 'questions'.");
         }
 
+        // Optional Config Validation
+        const config = data.config || {};
+        if (config.time && typeof config.time !== 'number') throw new Error("Configuração de 'time' inválida.");
+        if (config.questions && typeof config.questions !== 'number') throw new Error("Configuração de 'questions' (quantidade) inválida.");
+
         // Validate Questions
         data.questions.forEach((q, idx) => {
             if (!q.enunciado || !Array.isArray(q.alternativas) || q.alternativas.length !== 4 || typeof q.correta !== 'number') {
@@ -116,6 +121,7 @@ async function processImport() {
             },
             body: JSON.stringify({
                 title: data.title,
+                config: data.config,
                 questions: data.questions
             })
         });
@@ -218,7 +224,12 @@ function renderQuizList() {
         li.innerHTML = `
             <div class="quiz-info">
                 <h3>${quiz.title}</h3>
-                <p>${quiz.questions.length} questões • Adicionado em ${new Date(quiz.createdAt).toLocaleDateString()}</p>
+                <p>
+                    ${quiz.questions.length} questões totais 
+                    ${quiz.settings && quiz.settings.questions ? `(Joga-se ${quiz.settings.questions})` : ''} • 
+                    ${quiz.settings && quiz.settings.time ? `⏱️ ${quiz.settings.time}s` : '⏱️ 20s'} • 
+                    Adicionado em ${new Date(quiz.createdAt).toLocaleDateString()}
+                </p>
             </div>
             <div class="quiz-actions">
                 ${currentQuizId !== quiz.id ?
@@ -250,6 +261,10 @@ function copyPrompt() {
 O JSON deve seguir estritamente este formato, sem markdown ao redor:
 {
   "title": "Título do Quiz",
+  "config": {
+    "time": 30, // Tempo em segundos por pergunta (Opcional)
+    "questions": 10 // Quantidade de perguntas por rodada (Opcional)
+  },
   "questions": [
     {
       "enunciado": "Texto da pergunta?",

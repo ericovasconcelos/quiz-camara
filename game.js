@@ -457,25 +457,48 @@ class GameScene extends Phaser.Scene {
         // Load Questions - Check LocalStorage first
         let questionsToLoad = QUESTION_BANK;
         const currentQuizId = localStorage.getItem('quizCamaraCurrentQuiz');
-        let isCustom = false;
 
         if (currentQuizId) {
             const quizzes = JSON.parse(localStorage.getItem('quizCamaraQuizzes') || '[]');
             const customQuiz = quizzes.find(q => q.id === currentQuizId);
-            if (customQuiz && customQuiz.questions && customQuiz.questions.length > 0) {
-                questionsToLoad = customQuiz.questions;
-                isCustom = true;
+            if (customQuiz) {
+                // Apply Custom Settings
+                if (customQuiz.settings) {
+                    if (customQuiz.settings.time) {
+                        this.timeLeft = customQuiz.settings.time;
+                        this.questionDuration = customQuiz.settings.time;
+                    }
+                    if (customQuiz.settings.questions) {
+                        // Shuffle and Slice
+                        const allQuestions = [...customQuiz.questions];
+                        // Fisher-Yates Shuffle
+                        for (let i = allQuestions.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                        }
+                        this.gameQuestions = allQuestions.slice(0, customQuiz.settings.questions);
+                        this.totalQuestions = this.gameQuestions.length;
+                    } else {
+                        // Default: All questions
+                        this.gameQuestions = customQuiz.questions;
+                        this.totalQuestions = this.gameQuestions.length;
+                    }
+                } else {
+                    this.gameQuestions = customQuiz.questions;
+                    this.totalQuestions = this.gameQuestions.length;
+                }
+            } else {
+                // Fallback to default if custom quiz not found
+                const shuffledBank = shuffleArray(QUESTION_BANK);
+                this.gameQuestions = shuffledBank.slice(0, GAME_CONFIG.questionsPerGame);
+                this.totalQuestions = this.gameQuestions.length;
             }
+        } else {
+            // Default Mode
+            const shuffledBank = shuffleArray(QUESTION_BANK);
+            this.gameQuestions = shuffledBank.slice(0, GAME_CONFIG.questionsPerGame);
+            this.totalQuestions = this.gameQuestions.length;
         }
-
-        // Seleciona e embaralha perguntas
-        const shuffledBank = shuffleArray(questionsToLoad);
-
-        // Se for custom, usa todas (ou limita se quiser, mas geralmente custom o user quer todas)
-        // Se for padrão, limita ao config
-        const limit = isCustom ? Math.min(questionsToLoad.length, 50) : GAME_CONFIG.questionsPerGame;
-
-        this.gameQuestions = shuffledBank.slice(0, limit);
 
         // Embaralha alternativas
         this.gameQuestions = this.gameQuestions.map(q => {
@@ -489,9 +512,11 @@ class GameScene extends Phaser.Scene {
             };
         });
 
+        // Initialize State
         this.currentQuestionIndex = 0;
         this.score = 0;
-        this.timeLeft = GAME_CONFIG.timePerQuestion;
+        this.timeLeft = this.timeLeft || GAME_CONFIG.timePerQuestion; // Default if not set by custom quiz
+        this.questionDuration = this.questionDuration || GAME_CONFIG.timePerQuestion; // Default used for progress bar calculations
         this.isProcessing = false;
     }
 
@@ -832,7 +857,7 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        this.timeLeft = GAME_CONFIG.timePerQuestion;
+        this.timeLeft = this.questionDuration;
         this.timerText.setText(this.timeLeft.toString());
         this.timerText.setColor('#ffffff');
 
@@ -878,7 +903,7 @@ class GameScene extends Phaser.Scene {
         this.timeLeft--;
         this.timerText.setText(this.timeLeft.toString());
 
-        const percentage = Math.max(0, this.timeLeft / GAME_CONFIG.timePerQuestion);
+        const percentage = Math.max(0, this.timeLeft / this.questionDuration);
         this.updateTimerBar(percentage);
 
         // Efeitos de urgência
