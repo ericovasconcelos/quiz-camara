@@ -41,25 +41,28 @@
 </head>
 
 <body>
-    <!-- Auth Header -->
-    <div id="auth-header"
-        style="position: absolute; top: 10px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 10px;">
-        <span id="user-display" style="color: #aab7c4; font-family: 'Poppins'; font-size: 14px; display: none;"></span>
-        <button id="login-btn" onclick="netlifyIdentity.open()" style="
-            background: rgba(0,0,0,0.3); border: 1px solid #d4af37; color: #d4af37; 
-            padding: 5px 15px; border-radius: 20px; cursor: pointer; font-family: 'Poppins'; font-size: 12px;
-            transition: all 0.2s;">
-            Login / Signup
-        </button>
-        <button id="logout-btn" onclick="netlifyIdentity.logout()" style="
-            background: rgba(192, 57, 43, 0.3); border: 1px solid #c0392b; color: #e74c3c; 
-            padding: 5px 15px; border-radius: 20px; cursor: pointer; font-family: 'Poppins'; font-size: 12px;
-            display: none;">
-            Sair
-        </button>
-    </div>
+    <div id="game-wrapper" style="position: relative; width: fit-content; margin: auto;">
+        <!-- Auth Header -->
+        <div id="auth-header"
+            style="position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; align-items: center; gap: 10px;">
+            <span id="user-display"
+                style="color: #ffffff; text-shadow: 0 1px 2px black; font-family: 'Poppins'; font-size: 14px; display: none;"></span>
+            <button id="login-btn" onclick="netlifyIdentity.open()" style="
+                background: rgba(0,0,0,0.6); border: 1px solid #d4af37; color: #d4af37; 
+                padding: 5px 15px; border-radius: 20px; cursor: pointer; font-family: 'Poppins'; font-size: 12px;
+                transition: all 0.2s;">
+                Login / Signup
+            </button>
+            <button id="logout-btn" onclick="netlifyIdentity.logout()" style="
+                background: rgba(192, 57, 43, 0.6); border: 1px solid #c0392b; color: #ffffff; 
+                padding: 5px 15px; border-radius: 20px; cursor: pointer; font-family: 'Poppins'; font-size: 12px;
+                display: none;">
+                Sair
+            </button>
+        </div>
 
-    <div id="game-container"></div>
+        <div id="game-container"></div>
+    </div>
 
     <script src="questions.js"></script>
 

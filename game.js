@@ -679,7 +679,56 @@ class GameScene extends Phaser.Scene {
         this.createExplanationPanel(width, height);
 
         this.loadQuestion();
-        this.cameras.main.fadeIn(500, 0, 0, 0);
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            y: height / 2,
+            duration: 600,
+            delay: 400,
+            ease: 'Back.easeOut'
+        });
+
+        // Save Result to DB if Logged In
+        const token = localStorage.getItem('netlify_token');
+        if (token) {
+            const resultData = {
+                score: score,
+                total: total,
+                quizTitle: localStorage.getItem('quizCamaraCurrentQuizTitle') || 'Jogo Rápido',
+                percentage: percentage
+            };
+
+            const saveText = this.add.text(width / 2, height - 40, 'Salvando resultado...', { fontSize: '14px', fill: '#ccc' }).setOrigin(0.5);
+
+            fetch('/api/history/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(resultData)
+            })
+                .then(res => {
+                    if (res.ok) {
+                        saveText.setText('✅ Resultado salvo no Ranking!');
+                        saveText.setStyle({ fill: '#2ecc71', backgroundColor: '#000000', padding: { x: 5, y: 5 } });
+                    } else {
+                        saveText.setText('❌ Erro ao salvar');
+                        console.error('Save failed', res);
+                    }
+                })
+                .catch(e => {
+                    saveText.setText('❌ Falha de conexão');
+                    console.error(e);
+                });
+        } else {
+            this.add.text(width / 2, height - 40, '⚠️ Faça login para salvar seu recorde', { fontSize: '14px', fill: '#e67e22', backgroundColor: '#000000', padding: { x: 5, y: 5 } }).setOrigin(0.5);
+        }
+
+        this.time.addEvent({
+            delay: 500,
+            callback: () => this.cameras.main.fadeIn(500, 0, 0, 0)
+        });
     }
 
     resetButtonStyle(btnContainer) {
