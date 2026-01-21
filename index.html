@@ -14,6 +14,9 @@
     <meta property="og:url" content="https://quiz-camara.netlify.app/"> <!-- Placeholder URL -->
     <meta property="og:type" content="website">
     <meta name="theme-color" content="#1a3a52">
+    <!-- Netlify Identity Widget -->
+    <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -38,10 +41,73 @@
 </head>
 
 <body>
+    <!-- Auth Header -->
+    <div id="auth-header"
+        style="position: absolute; top: 10px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 10px;">
+        <span id="user-display" style="color: #aab7c4; font-family: 'Poppins'; font-size: 14px; display: none;"></span>
+        <button id="login-btn" onclick="netlifyIdentity.open()" style="
+            background: rgba(0,0,0,0.3); border: 1px solid #d4af37; color: #d4af37; 
+            padding: 5px 15px; border-radius: 20px; cursor: pointer; font-family: 'Poppins'; font-size: 12px;
+            transition: all 0.2s;">
+            Login / Signup
+        </button>
+        <button id="logout-btn" onclick="netlifyIdentity.logout()" style="
+            background: rgba(192, 57, 43, 0.3); border: 1px solid #c0392b; color: #e74c3c; 
+            padding: 5px 15px; border-radius: 20px; cursor: pointer; font-family: 'Poppins'; font-size: 12px;
+            display: none;">
+            Sair
+        </button>
+    </div>
 
     <div id="game-container"></div>
 
     <script src="questions.js"></script>
+
+    <script>
+        // Netlify Identity Logic
+        document.addEventListener("DOMContentLoaded", () => {
+            const user = netlifyIdentity.currentUser();
+            updateAuthUI(user);
+
+            netlifyIdentity.on("login", user => {
+                console.log("Login", user);
+                netlifyIdentity.close();
+                updateAuthUI(user);
+                window.location.reload(); // Reload to refresh permissions/UI
+            });
+
+            netlifyIdentity.on("logout", () => {
+                console.log("Logged out");
+                updateAuthUI(null);
+                window.location.reload();
+            });
+        });
+
+        function updateAuthUI(user) {
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userDisplay = document.getElementById('user-display');
+
+            if (user) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                userDisplay.style.display = 'block';
+                userDisplay.textContent = `Olá, ${user.user_metadata.full_name || user.email}`;
+
+                // Generate token for API calls
+                user.jwt().then(token => {
+                    localStorage.setItem('netlify_token', token);
+                });
+
+            } else {
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                userDisplay.style.display = 'none';
+                localStorage.removeItem('netlify_token');
+            }
+        }
+    </script>
+
     <script src="game.js"></script>
 
 </body>

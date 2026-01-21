@@ -12,20 +12,50 @@ let currentQuizId = null;
 document.addEventListener('DOMContentLoaded', () => {
     currentQuizId = localStorage.getItem(STORAGE_KEYS.CURRENT); // Keep current selection local
     loadQuizzes();
-    renderCurrentStatus(); // Initial render may use stale data until loadQuizzes completes
+    renderCurrentStatus();
+    renderQuizList();
+    loadHistory(); // Initial load if logged in
 });
+
+// UI: Tab Switching
+window.switchTab = function (tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.getElementById(tabName).style.display = 'block';
+
+    if (tabName === 'history-section') loadHistory();
+    if (tabName === 'leaderboard-section') loadLeaderboard();
+};
+
+// UI: Tab Switching (Simple implementation)
+window.switchTab = function (tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.getElementById(tabName).style.display = 'block';
+
+    // Update active button state if we had buttons, but for now we just show/hide
+    if (tabName === 'history-section') loadHistory();
+    if (tabName === 'leaderboard-section') loadLeaderboard();
+};
 
 // Load from API
 async function loadQuizzes() {
     try {
-        const res = await fetch('/api/quizzes');
+        const token = localStorage.getItem('netlify_token');
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch('/api/quizzes', { headers });
         if (!res.ok) throw new Error('Falha ao carregar quizzes');
         quizzes = await res.json();
     } catch (e) {
         console.error(e);
         // Fallback or empty
         quizzes = [];
-        showMessage('Usando modo offline (nenhum quiz carregado do servidor)', 'error');
+        const token = localStorage.getItem('netlify_token');
+        if (!token) {
+            showMessage('Faça login para ver seus quizzes salvos.', 'info');
+        } else {
+            showMessage('Usando modo offline (nenhum quiz carregado do servidor)', 'error');
+        }
     }
 
     // Sync Local Storage for Game Access (Hybrid approach)
@@ -72,9 +102,18 @@ async function processImport() {
         });
 
         // Save to API
+        const token = localStorage.getItem('netlify_token');
+        if (!token) {
+            showMessage('Você precisa estar logado para salvar quizzes!', 'error');
+            return;
+        }
+
         const res = await fetch('/api/quizzes/add', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({
                 title: data.title,
                 questions: data.questions
@@ -227,4 +266,73 @@ O JSON deve seguir estritamente este formato, sem markdown ao redor:
         btn.textContent = "Copiado!";
         setTimeout(() => btn.textContent = originalText, 1500);
     });
+}
+
+// --- HISTORY & LEADERBOARD ---
+
+async function loadHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '<li>Carregando...</li>';
+
+    const token = localStorage.getItem('netlify_token');
+    if (!token) {
+        list.innerHTML = '<li>Faça login para ver seu histórico.</li>';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/history/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const history = await res.json();
+
+        list.innerHTML = '';
+        if (history.length === 0) {
+            list.innerHTML = '<li>Nenhum jogo registrado ainda.</li>';
+            return;
+        }
+
+        history.forEach(h => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <strong>${h.quizTitle}</strong><br>
+                Pontos: ${h.score}/${h.total} (${h.percentage}%) • ${new Date(h.playedAt).toLocaleDateString()}
+            `;
+            li.style.padding = "10px";
+            li.style.borderBottom = "1px solid #eee";
+            list.appendChild(li);
+        });
+    } catch (e) {
+        list.innerHTML = '<li>Erro ao carregar histórico.</li>';
+    }
+}
+
+async function loadLeaderboard() {
+    const list = document.getElementById('leaderboard-list');
+    list.innerHTML = '<li>Carregando...</li>';
+
+    try {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+
+        list.innerHTML = '';
+        if (data.length === 0) {
+            list.innerHTML = '<li>Sem recordes.</li>';
+            return;
+        }
+
+        data.forEach((entry, i) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span style="font-weight:bold; color: ${i < 3 ? '#d4af37' : '#555'}">#${i + 1}</span> 
+                ${entry.playerName || 'Anônimo'} — 
+                <strong>${entry.score}/${entry.total}</strong> (${entry.percentage}%)
+            `;
+            li.style.padding = "10px";
+            li.style.borderBottom = "1px solid #eee";
+            list.appendChild(li);
+        });
+    } catch (e) {
+        list.innerHTML = '<li>Erro ao carregar ranking.</li>';
+    }
 }

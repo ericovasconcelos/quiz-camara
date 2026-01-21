@@ -213,8 +213,15 @@ class MenuScene extends Phaser.Scene {
             const customQuiz = quizzes.find(q => q.id === currentQuizId);
             if (customQuiz) {
                 subtitleText = `Modo Personalizado: ${customQuiz.title}`;
+                localStorage.setItem('quizCamaraCurrentQuizTitle', customQuiz.title);
+            } else {
+                // ID exists but quiz not found? Default.
+                localStorage.setItem('quizCamaraCurrentQuizTitle', 'Direito Constitucional & Regimento Interno');
             }
+        } else {
+            localStorage.setItem('quizCamaraCurrentQuizTitle', 'Direito Constitucional & Regimento Interno');
         }
+
 
         this.add.text(width / 2, titleY + 100, subtitleText, {
             fontSize: '16px',
@@ -371,6 +378,72 @@ class MenuScene extends Phaser.Scene {
         adminBtn.on('pointerover', () => adminBtn.setColor(COLORS.accent ? '#d4af37' : '#d4af37'));
         adminBtn.on('pointerout', () => adminBtn.setColor('#576574'));
         adminBtn.on('pointerdown', () => window.location.href = 'admin.html');
+
+        // 9. Leaderboard Button (Top Right)
+        const lbBtn = this.add.text(width - 40, 40, '🏆', { fontSize: '28px' })
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true });
+
+        lbBtn.on('pointerdown', () => this.showLeaderboard());
+    }
+
+    async showLeaderboard() {
+        // Create Modal Container
+        if (this.lbContainer) this.lbContainer.destroy();
+
+        const { width, height } = this.cameras.main;
+        const container = this.add.container(width / 2, height / 2);
+        this.lbContainer = container;
+
+        // Background Dim
+        const bg = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setInteractive();
+        bg.on('pointerdown', () => container.destroy()); // Click outside to close
+
+        // Panel
+        const panel = this.add.graphics();
+        panel.fillStyle(COLORS.cardBg, 1);
+        panel.fillRoundedRect(-300, -350, 600, 700, 20);
+        panel.lineStyle(2, COLORS.accent, 1);
+        panel.strokeRoundedRect(-300, -350, 600, 700, 20);
+
+        const title = this.add.text(0, -300, 'RANKING GLOBAL', {
+            fontSize: '32px',
+            fill: COLORS.accent,
+            fontFamily: VISUAL_CONFIG.fontFamily,
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        const loading = this.add.text(0, 0, 'Carregando...', { fontSize: '20px' }).setOrigin(0.5);
+
+        container.add([bg, panel, title, loading]);
+
+        try {
+            const res = await fetch('/api/leaderboard');
+            const data = await res.json();
+            loading.destroy();
+
+            if (data.length === 0) {
+                container.add(this.add.text(0, 0, 'Ainda sem recordes!', { fontSize: '20px' }).setOrigin(0.5));
+            } else {
+                let y = -220;
+                data.forEach((entry, index) => {
+                    const color = index === 0 ? '#f1c40f' : (index === 1 ? '#bdc3c7' : (index === 2 ? '#cd7f32' : '#ffffff'));
+
+                    const rank = this.add.text(-250, y, `#${index + 1}`, { fontSize: '20px', fill: color, fontFamily: VISUAL_CONFIG.fontFamily });
+                    const name = this.add.text(-180, y, entry.playerName || 'Anônimo', { fontSize: '20px', fill: color, fontFamily: VISUAL_CONFIG.fontFamily });
+                    const score = this.add.text(150, y, `${entry.score}/${entry.total}`, { fontSize: '20px', fill: color, fontFamily: VISUAL_CONFIG.fontFamily });
+                    const percent = this.add.text(240, y, `${entry.percentage}%`, { fontSize: '16px', fill: '#95a5a6', fontFamily: VISUAL_CONFIG.fontFamily }).setOrigin(1, 0);
+
+                    container.add([rank, name, score, percent]);
+                    y += 50;
+                });
+            }
+        } catch (e) {
+            loading.setText('Erro ao carregar ranking');
+        }
+
+        container.setScale(0);
+        this.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 300, ease: 'Back.easeOut' });
     }
 }
 
@@ -1157,7 +1230,30 @@ class ResultScene extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        this.cameras.main.fadeIn(500, 0, 0, 0);
+        // Save Result to DB if Logged In
+        const token = localStorage.getItem('netlify_token');
+        if (token) {
+            const resultData = {
+                score: score,
+                total: total,
+                quizTitle: localStorage.getItem('quizCamaraCurrentQuizTitle') || 'Jogo Rápido',
+                percentage: percentage
+            };
+
+            fetch('/api/history/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(resultData)
+            }).catch(console.error);
+        }
+
+        this.time.addEvent({
+            delay: 500,
+            callback: () => this.cameras.main.fadeIn(500, 0, 0, 0)
+        });
     }
 }
 

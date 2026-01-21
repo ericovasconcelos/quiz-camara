@@ -1,12 +1,11 @@
 import { db } from "../../db";
-import { quizzes } from "../../schema";
+import { gameHistory } from "../../schema";
 
 export default async (req, context) => {
     if (req.method !== "POST") {
         return new Response("Method Not Allowed", { status: 405 });
     }
 
-    // Check for Auth
     const user = context.clientContext && context.clientContext.user;
     if (!user) {
         return new Response("Unauthorized", { status: 401 });
@@ -15,14 +14,18 @@ export default async (req, context) => {
     try {
         const data = await req.json();
 
-        if (!data.title || !data.questions) {
-            return new Response(JSON.stringify({ error: "Missing title or questions" }), { status: 400 });
+        // Validation
+        if (data.score === undefined || !data.total) {
+            return new Response("Missing score data", { status: 400 });
         }
 
-        const inserted = await db.insert(quizzes).values({
+        const inserted = await db.insert(gameHistory).values({
             userId: user.sub,
-            title: data.title,
-            questions: data.questions,
+            playerName: user.user_metadata.full_name || user.email,
+            quizTitle: data.quizTitle || 'Jogo Rápido',
+            score: data.score,
+            total: data.total,
+            percentage: data.percentage || Math.round((data.score / data.total) * 100)
         }).returning();
 
         return new Response(JSON.stringify(inserted[0]), {
@@ -37,5 +40,5 @@ export default async (req, context) => {
 };
 
 export const config = {
-    path: "/api/quizzes/add"
+    path: "/api/history/save"
 };

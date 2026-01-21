@@ -1,8 +1,20 @@
-import { pgTable, serial, text, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, jsonb, timestamp, integer } from "drizzle-orm/pg-core";
 
 export const quizzes = pgTable("quizzes", {
     id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
     title: text("title").notNull(),
-    questions: jsonb("questions").notNull(), // Stores the array of questions
+    questions: jsonb("questions").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gameHistory = pgTable("game_history", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    playerName: text("player_name"),
+    quizTitle: text("quiz_title"),
+    score: integer("score").notNull(),
+    total: integer("total").notNull(),
+    percentage: integer("percentage").notNull(),
+    playedAt: timestamp("played_at").defaultNow().notNull(),
 });

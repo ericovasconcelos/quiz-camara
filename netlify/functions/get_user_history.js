@@ -1,23 +1,19 @@
 import { db } from "../../db";
-import { quizzes } from "../../schema";
+import { gameHistory } from "../../schema";
 import { desc, eq } from "drizzle-orm";
 
 export default async (req, context) => {
-    // Check for Auth
     const user = context.clientContext && context.clientContext.user;
-    if (!user) {
-        return new Response(JSON.stringify([]), { // Return empty if not logged in
-            headers: { "Content-Type": "application/json" },
-        });
-    }
+    if (!user) return new Response(JSON.stringify([]));
 
     try {
-        const allQuizzes = await db.select()
-            .from(quizzes)
-            .where(eq(quizzes.userId, user.sub))
-            .orderBy(desc(quizzes.createdAt));
+        const history = await db.select()
+            .from(gameHistory)
+            .where(eq(gameHistory.userId, user.sub))
+            .orderBy(desc(gameHistory.playedAt))
+            .limit(50); // Limit to last 50 games
 
-        return new Response(JSON.stringify(allQuizzes), {
+        return new Response(JSON.stringify(history), {
             headers: { "Content-Type": "application/json" },
         });
     } catch (error) {
@@ -29,5 +25,5 @@ export default async (req, context) => {
 };
 
 export const config = {
-    path: "/api/quizzes"
+    path: "/api/history/me"
 };

@@ -11,6 +11,7 @@ async function main() {
     console.log("Running migration...");
 
     try {
+        // 1. Quizzes Table (Update)
         await sql`
       CREATE TABLE IF NOT EXISTS quizzes (
         id SERIAL PRIMARY KEY,
@@ -19,7 +20,28 @@ async function main() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       );
     `;
-        console.log("Migration complete: 'quizzes' table verified.");
+
+        // Add user_id if missing
+        try {
+            await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS user_id TEXT;`;
+        } catch (e) {
+            console.log("Column user_id might already exist or error ignored:", e.message);
+        }
+
+        // 2. Game History Table (New)
+        await sql`
+      CREATE TABLE IF NOT EXISTS game_history (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        player_name TEXT,
+        quiz_title TEXT,
+        score INTEGER NOT NULL,
+        total INTEGER NOT NULL,
+        percentage INTEGER NOT NULL,
+        played_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `;
+        console.log("Migration complete: Tables verified.");
     } catch (err) {
         console.error("Migration failed:", err);
         process.exit(1);
