@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { quizzes } from "../schema";
+import { db } from "../../db";
+import { quizzes } from "../../schema";
 
 export default async (req) => {
     if (req.method !== "POST") {
