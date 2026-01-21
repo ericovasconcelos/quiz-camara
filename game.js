@@ -4,6 +4,7 @@
 
 // --- CONFIGURAÇÕES E CONSTANTES ---
 // --- CONFIGURAÇÕES VISUAIS E CONSTANTES ---
+const STORAGE_KEY_HIGHSCORE = 'quizCamaraHighScore';
 const COLORS = {
     // Tema Jurídico/Legislativo (Azul Profundo & Dourado)
     primary: 0x1a3a52,      // Azul Institucional Profundo
@@ -1079,7 +1080,7 @@ class ResultScene extends Phaser.Scene {
         this.particles.createAmbient();
 
         // 3. High Score logic
-        const previousHigh = getHighScore();
+        const previousHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
         const isNewRecord = score > previousHigh;
         if (isNewRecord) {
             saveHighScore(score);
@@ -1271,7 +1272,7 @@ class ResultScene extends Phaser.Scene {
         });
 
         // Rodapé Stats
-        const footer = this.add.text(0, height / 2 - 40, `Recorde Atual: ${getHighScore()} pontos`, {
+        const footer = this.add.text(0, height / 2 - 40, `Recorde Atual: ${parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0')} pontos`, {
             fontSize: '14px',
             fill: COLORS.textDim,
             fontFamily: VISUAL_CONFIG.fontFamily
