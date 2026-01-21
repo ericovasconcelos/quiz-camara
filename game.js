@@ -144,9 +144,7 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-function getHighScore() {
-    return parseInt(localStorage.getItem('quizCamaraHighScore') || '0');
-}
+
 
 function saveHighScore(score) {
     localStorage.setItem('quizCamaraHighScore', score.toString());
@@ -230,21 +228,27 @@ class MenuScene extends Phaser.Scene {
             letterSpacing: 1
         }).setOrigin(0.5);
 
-        // 5. High Score Badge
-        const highScore = getHighScore();
-        if (highScore > 0) {
-            const badgeY = 480;
-            const badgeBg = this.add.graphics();
-            badgeBg.fillStyle(0x000000, 0.3);
-            badgeBg.fillRoundedRect(width / 2 - 100, badgeY - 20, 200, 40, 20);
+        // 5. High Score Badge (Placeholder, will update async)
+        const badgeY = 480;
+        this.highScoreContainer = this.add.container(width / 2, badgeY);
+        this.highScoreContainer.visible = false;
 
-            this.add.text(width / 2, badgeY, `🏆 Recorde: ${highScore}`, {
-                fontSize: '18px',
-                fill: '#f39c12',
-                fontFamily: VISUAL_CONFIG.fontFamily,
-                fontStyle: '600'
-            }).setOrigin(0.5);
-        }
+        const badgeBg = this.add.graphics();
+        badgeBg.fillStyle(0x000000, 0.3);
+        badgeBg.fillRoundedRect(-100, -20, 200, 40, 20);
+
+        const badgeText = this.add.text(0, 0, 'Carregando Recorde...', {
+            fontSize: '18px',
+            fill: '#f39c12',
+            fontFamily: VISUAL_CONFIG.fontFamily,
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.highScoreText = badgeText;
+
+        this.highScoreContainer.add([badgeBg, badgeText]);
+
+        // Check DB for High Score if logged in, else LocalStorage
+        this.loadUserHighScore();
 
         // 6. Botão Iniciar Moderno
         const btnY = 620;
@@ -385,6 +389,38 @@ class MenuScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true });
 
         lbBtn.on('pointerdown', () => this.showLeaderboard());
+    }
+
+    async loadUserHighScore() {
+        const token = localStorage.getItem('netlify_token');
+        let bestScore = 0;
+
+        // Try API first
+        if (token) {
+            try {
+                const res = await fetch('/api/history/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const history = await res.json();
+                if (history && history.length > 0) {
+                    // Find max score in current mode (optional filtering) or just global max
+                    // For simplicity, showing global max score
+                    const maxEntry = history.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+                    bestScore = maxEntry.score;
+                }
+            } catch (e) {
+                console.error("Failed to fetch history", e);
+            }
+        }
+
+        // Fallback to LocalStorage if API gave 0 (or error), AND if LocalStorage is higher
+        const localScore = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
+        if (localScore > bestScore) bestScore = localScore;
+
+        if (bestScore > 0) {
+            this.highScoreText.setText(`🏆 Recorde: ${bestScore}`);
+            this.highScoreContainer.visible = true;
+        }
     }
 
     async showLeaderboard() {
@@ -1265,6 +1301,8 @@ class ResultScene extends Phaser.Scene {
                 percentage: percentage
             };
 
+            const saveText = this.add.text(width / 2, height - 40, 'Salvando resultado...', { fontSize: '14px', fill: '#ccc' }).setOrigin(0.5);
+
             fetch('/api/history/save', {
                 method: 'POST',
                 headers: {
@@ -1272,7 +1310,34 @@ class ResultScene extends Phaser.Scene {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(resultData)
-            }).catch(console.error);
+            })
+                .then(res => {
+                    if (res.ok) {
+                        saveText.setText('✅ Resultado salvo no Ranking!');
+                        saveText.setStyle({ fill: '#2ecc71', backgroundColor: '#000000', padding: { x: 5, y: 5 } });
+
+                        // Update LocalStorage if better
+                        const oldHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
+                        if (score > oldHigh) {
+                            localStorage.setItem(STORAGE_KEY_HIGHSCORE, score);
+                        }
+                    } else {
+                        saveText.setText('❌ Erro ao salvar');
+                        console.error('Save failed', res);
+                    }
+                })
+                .catch(e => {
+                    saveText.setText('❌ Falha de conexão');
+                    console.error(e);
+                });
+        } else {
+            // Offline Save (Legacy)
+            const oldHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
+            if (score > oldHigh) {
+                localStorage.setItem(STORAGE_KEY_HIGHSCORE, score);
+                this.add.text(width / 2, height - 60, '🏆 Novo Recorde Local!', { fontSize: '16px', fill: '#f1c40f' }).setOrigin(0.5);
+            }
+            this.add.text(width / 2, height - 30, '⚠️ Faça login para salvar no Ranking Global', { fontSize: '12px', fill: '#e67e22' }).setOrigin(0.5);
         }
 
         this.time.addEvent({
