@@ -147,9 +147,23 @@ function shuffleArray(array) {
 
 
 
+
 function saveHighScore(score) {
     localStorage.setItem('quizCamaraHighScore', score.toString());
 }
+
+async function getAuthToken() {
+    if (window.netlifyIdentity && window.netlifyIdentity.currentUser()) {
+        try {
+            return await window.netlifyIdentity.currentUser().jwt();
+        } catch (e) {
+            console.error("Error refreshing token", e);
+            return null;
+        }
+    }
+    return null;
+}
+
 
 // --- CENA DO MENU ---
 class MenuScene extends Phaser.Scene {
@@ -393,7 +407,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     async loadUserHighScore() {
-        const token = localStorage.getItem('netlify_token');
+        const token = await getAuthToken();
         let bestScore = 0;
 
         // Try API first
@@ -1293,53 +1307,58 @@ class ResultScene extends Phaser.Scene {
         });
 
         // Save Result to DB if Logged In
-        const token = localStorage.getItem('netlify_token');
-        if (token) {
-            const resultData = {
-                score: score,
-                total: total,
-                quizTitle: localStorage.getItem('quizCamaraCurrentQuizTitle') || 'Jogo Rápido',
-                percentage: percentage
-            };
+        getAuthToken().then(token => {
+            if (token) {
+                const resultData = {
+                    score: score,
+                    total: total,
+                    quizTitle: localStorage.getItem('quizCamaraCurrentQuizTitle') || 'Jogo Rápido',
+                    percentage: percentage
+                };
 
-            const saveText = this.add.text(width / 2, height - 40, 'Salvando resultado...', { fontSize: '14px', fill: '#ccc' }).setOrigin(0.5);
+                const saveText = this.add.text(width / 2, height - 40, 'Salvando resultado...', { fontSize: '14px', fill: '#ccc' }).setOrigin(0.5);
 
-            fetch('/api/history/save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(resultData)
-            })
-                .then(res => {
-                    if (res.ok) {
-                        saveText.setText('✅ Resultado salvo no Ranking!');
-                        saveText.setStyle({ fill: '#2ecc71', backgroundColor: '#000000', padding: { x: 5, y: 5 } });
-
-                        // Update LocalStorage if better
-                        const oldHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
-                        if (score > oldHigh) {
-                            localStorage.setItem(STORAGE_KEY_HIGHSCORE, score);
-                        }
-                    } else {
-                        saveText.setText('❌ Erro ao salvar');
-                        console.error('Save failed', res);
-                    }
+                fetch('/api/history/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(resultData)
                 })
-                .catch(e => {
-                    saveText.setText('❌ Falha de conexão');
-                    console.error(e);
-                });
-        } else {
-            // Offline Save (Legacy)
-            const oldHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
-            if (score > oldHigh) {
-                localStorage.setItem(STORAGE_KEY_HIGHSCORE, score);
-                this.add.text(width / 2, height - 60, '🏆 Novo Recorde Local!', { fontSize: '16px', fill: '#f1c40f' }).setOrigin(0.5);
+                    .then(res => {
+                        if (res.ok) {
+                            saveText.setText('✅ Resultado salvo no Ranking!');
+                            saveText.setStyle({ fill: '#2ecc71', backgroundColor: '#000000', padding: { x: 5, y: 5 } });
+
+                            // Update LocalStorage if better
+                            const oldHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
+                            if (score > oldHigh) {
+                                localStorage.setItem(STORAGE_KEY_HIGHSCORE, score);
+                            }
+                        } else {
+                            if (res.status === 401) {
+                                saveText.setText('⚠️ Sessão expirada. Faça login novamente.');
+                            } else {
+                                saveText.setText('❌ Erro ao salvar');
+                            }
+                            console.error('Save failed', res);
+                        }
+                    })
+                    .catch(e => {
+                        saveText.setText('❌ Falha de conexão');
+                        console.error(e);
+                    });
+            } else {
+                // Offline Save (Legacy)
+                const oldHigh = parseInt(localStorage.getItem(STORAGE_KEY_HIGHSCORE) || '0');
+                if (score > oldHigh) {
+                    localStorage.setItem(STORAGE_KEY_HIGHSCORE, score);
+                    this.add.text(width / 2, height - 60, '🏆 Novo Recorde Local!', { fontSize: '16px', fill: '#f1c40f' }).setOrigin(0.5);
+                }
+                this.add.text(width / 2, height - 30, '⚠️ Faça login para salvar no Ranking Global', { fontSize: '12px', fill: '#e67e22' }).setOrigin(0.5);
             }
-            this.add.text(width / 2, height - 30, '⚠️ Faça login para salvar no Ranking Global', { fontSize: '12px', fill: '#e67e22' }).setOrigin(0.5);
-        }
+        });
 
         this.time.addEvent({
             delay: 500,

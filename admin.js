@@ -8,6 +8,18 @@ const STORAGE_KEYS = {
 let quizzes = [];
 let currentQuizId = null;
 
+async function getAuthToken() {
+    if (window.netlifyIdentity && window.netlifyIdentity.currentUser()) {
+        try {
+            return await window.netlifyIdentity.currentUser().jwt();
+        } catch (e) {
+            console.error("Error refreshing token", e);
+            return null;
+        }
+    }
+    return null;
+}
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     currentQuizId = localStorage.getItem(STORAGE_KEYS.CURRENT); // Keep current selection local
@@ -39,7 +51,7 @@ window.switchTab = function (tabName) {
 // Load from API
 async function loadQuizzes() {
     try {
-        const token = localStorage.getItem('netlify_token');
+        const token = await getAuthToken();
         const headers = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -107,7 +119,7 @@ async function processImport() {
         });
 
         // Save to API
-        const token = localStorage.getItem('netlify_token');
+        const token = await getAuthToken();
         if (!token) {
             showMessage('Você precisa estar logado para salvar quizzes!', 'error');
             return;
@@ -289,7 +301,7 @@ async function loadHistory() {
     const list = document.getElementById('history-list');
     list.innerHTML = '<li>Carregando...</li>';
 
-    const token = localStorage.getItem('netlify_token');
+    const token = await getAuthToken();
     if (!token) {
         list.innerHTML = '<li>Faça login para ver seu histórico.</li>';
         return;
