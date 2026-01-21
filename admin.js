@@ -11,7 +11,7 @@ let currentQuizId = null;
 async function getAuthToken() {
     if (window.netlifyIdentity && window.netlifyIdentity.currentUser()) {
         try {
-            return await window.netlifyIdentity.currentUser().jwt();
+            return await window.netlifyIdentity.currentUser().jwt(true);
         } catch (e) {
             console.error("Error refreshing token", e);
             return null;

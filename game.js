@@ -155,12 +155,17 @@ function saveHighScore(score) {
 async function getAuthToken() {
     if (window.netlifyIdentity && window.netlifyIdentity.currentUser()) {
         try {
-            return await window.netlifyIdentity.currentUser().jwt();
+            console.log("Refreshing Netlify Token...");
+            // Force refresh (true) to ensure we don't get a stale token
+            const token = await window.netlifyIdentity.currentUser().jwt(true);
+            console.log("Token Refreshed:", token ? "YES (Length: " + token.length + ")" : "NO");
+            return token;
         } catch (e) {
             console.error("Error refreshing token", e);
             return null;
         }
     }
+    console.warn("No current user in Netlify Identity");
     return null;
 }
 
@@ -1309,6 +1314,8 @@ class ResultScene extends Phaser.Scene {
         // Save Result to DB if Logged In
         getAuthToken().then(token => {
             if (token) {
+                console.log("Attempting to save with token:", token.substring(0, 10) + "...");
+
                 const resultData = {
                     score: score,
                     total: total,
