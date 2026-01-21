@@ -4,7 +4,8 @@
   "description": "Um jogo de perguntas e respostas interativo desenvolvido com **Phaser 3** para auxiliar nos estudos para o concurso da Câmara dos Deputados. O foco é em **Direito Constitucional** e **Regimento Interno**.",
   "main": "admin.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node migrate.js"
   },
   "repository": {
     "type": "git",
