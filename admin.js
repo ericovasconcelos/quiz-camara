@@ -10,22 +10,29 @@ let currentQuizId = null;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    currentQuizId = localStorage.getItem(STORAGE_KEYS.CURRENT); // Keep current selection local
     loadQuizzes();
-    renderCurrentStatus();
-    renderQuizList();
+    renderCurrentStatus(); // Initial render may use stale data until loadQuizzes completes
 });
 
-// Load from LocalStorage
-function loadQuizzes() {
-    const storedQuizzes = localStorage.getItem(STORAGE_KEYS.QUIZZES);
-    quizzes = storedQuizzes ? JSON.parse(storedQuizzes) : [];
+// Load from API
+async function loadQuizzes() {
+    try {
+        const res = await fetch('/api/quizzes');
+        if (!res.ok) throw new Error('Falha ao carregar quizzes');
+        quizzes = await res.json();
+    } catch (e) {
+        console.error(e);
+        // Fallback or empty
+        quizzes = [];
+        showMessage('Usando modo offline (nenhum quiz carregado do servidor)', 'error');
+    }
 
-    // Ensure quizzes have IDs
-    quizzes.forEach(q => {
-        if (!q.id) q.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-    });
+    // Sync Local Storage for Game Access (Hybrid approach)
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
 
-    currentQuizId = localStorage.getItem(STORAGE_KEYS.CURRENT);
+    renderCurrentStatus();
+    renderQuizList();
 }
 
 // Save to LocalStorage
@@ -46,7 +53,7 @@ function toggleImport() {
 }
 
 // Process JSON Import
-function processImport() {
+async function processImport() {
     const input = document.getElementById('json-input').value;
 
     try {
@@ -64,24 +71,31 @@ function processImport() {
             }
         });
 
-        // Add ID and Save
-        const newQuiz = {
-            id: Date.now().toString(),
-            title: data.title,
-            questions: data.questions,
-            createdAt: new Date().toISOString()
-        };
+        // Save to API
+        const res = await fetch('/api/quizzes/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: data.title,
+                questions: data.questions
+            })
+        });
 
-        quizzes.push(newQuiz);
-        saveQuizzes();
+        if (!res.ok) throw new Error('Erro ao salvar no servidor');
+
+        const savedQuiz = await res.json();
+        quizzes.unshift(savedQuiz); // Add to local list
 
         // Success
-        showMessage(`Quiz "${newQuiz.title}" importado com sucesso!`, 'success');
+        showMessage(`Quiz "${savedQuiz.title}" importado com sucesso!`, 'success');
         toggleImport();
-        renderQuizList();
 
-        // Auto-select the new quiz
-        selectQuiz(newQuiz.id);
+        // Auto-select
+        selectQuiz(savedQuiz.id);
+
+        // Sync Local
+        localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
+        renderQuizList();
 
     } catch (e) {
         showMessage('Erro ao importar: ' + e.message, 'error');
@@ -108,12 +122,13 @@ function resetToDefault() {
 
 // Delete a Quiz
 function deleteQuiz(id) {
-    if (!confirm('Tem certeza que deseja excluir este quiz?')) return;
+    if (!confirm('Tem certeza? (Isso só afetará sua visão local por enquanto, exclusão de servidor não implementada)')) return;
 
     quizzes = quizzes.filter(q => q.id !== id);
-    saveQuizzes();
+    // Sync Local
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
 
-    if (currentQuizId === id) {
+    if (currentQuizId == id) { // Loose equality for string/int ids
         resetToDefault();
     } else {
         renderQuizList();

@@ -11,11 +11,18 @@ Um jogo de perguntas e respostas interativo desenvolvido com **Phaser 3** para a
 
 ## 🚀 Como Colocar Online
 
-### Opção 1: Netlify Drop (Mais Fácil - Recomendado)
+### Opção 1: Netlify (Conexão com GitHub - Recomendado ⭐️)
+Isso garante que toda vez que você atualizar o código no GitHub, o site atualiza sozinho.
+
+1.  Acesse [app.netlify.com](https://app.netlify.com).
+2.  Clique em **"Add new site"** > **"Import an existing project"**.
+3.  Escolha **GitHub**.
+4.  Procure por `quiz-camara` e selecione.
+5.  Clique em **Deploy Site**.
+
+### Opção 2: Netlify Drop (Manual)
 1.  Acesse [app.netlify.com/drop](https://app.netlify.com/drop).
 2.  Arraste a pasta `quiz-camara` inteira para a área indicada.
-3.  O site estará no ar em segundos!
-4.  **Dica**: Você pode mudar o nome do site nas configurações do Netlify para algo como `quiz-camara-estudos.netlify.app`.
 
 ### Opção 2: GitHub Pages
 1.  Crie um repositório no GitHub.

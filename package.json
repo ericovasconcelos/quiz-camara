@@ -1,0 +1,29 @@
+{
+  "name": "quiz-camara",
+  "version": "1.0.0",
+  "description": "Um jogo de perguntas e respostas interativo desenvolvido com **Phaser 3** para auxiliar nos estudos para o concurso da Câmara dos Deputados. O foco é em **Direito Constitucional** e **Regimento Interno**.",
+  "main": "admin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ericovasconcelos/quiz-camara.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ericovasconcelos/quiz-camara/issues"
+  },
+  "homepage": "https://github.com/ericovasconcelos/quiz-camara#readme",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "@netlify/neon": "^0.1.2",
+    "drizzle-orm": "^0.45.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.8"
+  }
+}
