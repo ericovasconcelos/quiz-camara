@@ -62,12 +62,7 @@ async function loadQuizzes() {
         console.error(e);
         // Fallback or empty
         quizzes = [];
-        const token = localStorage.getItem('netlify_token');
-        if (!token) {
-            showMessage('Faça login para ver seus quizzes salvos.', 'info');
-        } else {
-            showMessage('Usando modo offline (nenhum quiz carregado do servidor)', 'error');
-        }
+        showMessage('Não foi possível carregar seus quizzes do servidor.', 'error');
     }
 
     // Sync Local Storage for Game Access (Hybrid approach)

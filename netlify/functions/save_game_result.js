@@ -7,9 +7,17 @@ export default async (req, context) => {
     }
 
     const user = context.clientContext && context.clientContext.user;
+
+    // DEBUG LOGGING
+    console.log("Function invoked.");
+    console.log("Client Context:", JSON.stringify(context.clientContext));
+    console.log("Headers Authorization:", req.headers.get("authorization"));
+
     if (!user) {
-        return new Response("Unauthorized", { status: 401 });
+        console.log("User not found in context.");
+        return new Response("Unauthorized - User context missing", { status: 401 });
     }
+    console.log("User authenticated:", user.email);
 
     try {
         const data = await req.json();
