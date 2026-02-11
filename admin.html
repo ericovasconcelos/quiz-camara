@@ -198,82 +198,115 @@
             <a href="index.html" class="btn btn-outline" id="btn-back">Voltar ao Jogo</a>
         </header>
 
-        <div id="message-area" class="alert"></div>
+        <!-- Tabs -->
+        <div style="margin-bottom: 20px; border-bottom: 1px solid #34495e;">
+            <button class="btn btn-outline" onclick="switchTab('quiz-section')" style="margin-right: 10px;">Gerenciar
+                Quizzes</button>
+            <button class="btn btn-outline" onclick="switchTab('history-section')" style="margin-right: 10px;">Meu
+                Histórico</button>
+            <button class="btn btn-outline" onclick="switchTab('leaderboard-section')">Ranking Global</button>
+        </div>
 
-        <!-- Active Quiz Display -->
-        <div class="card">
-            <div class="section-title">Quiz Selecionado Atualmente</div>
-            <div id="current-quiz-display">
-                <p>Carregando...</p>
+        <!-- TAB 1: Quiz Management -->
+        <div id="quiz-section" class="tab-content">
+            <div id="message-area" class="alert"></div>
+
+            <!-- Active Quiz Display -->
+            <div class="card">
+                <div class="section-title">Quiz Selecionado Atualmente</div>
+                <div id="current-quiz-display">
+                    <p>Carregando...</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <button class="btn" onclick="toggleImport()">+ Importar Novo Quiz (JSON)</button>
+                <button class="btn btn-danger" onclick="resetToDefault()">Restaurar Original</button>
+            </div>
+
+            <!-- Import Section -->
+            <div id="import-section" class="card">
+                <div class="section-title">Importar JSON</div>
+                <p style="font-size: 13px; color: #bdc3c7; margin-bottom: 10px;">
+                    Cole o JSON abaixo. Formato esperado: <code>{ "title": "...", "questions": [...] }</code>
+                </p>
+                <textarea id="json-input" placeholder='{
+      "title": "Meu Quiz Personalizado",
+      "questions": [
+        {
+          "enunciado": "Pergunta 1...",
+          "alternativas": ["A", "B", "C", "D"],
+          "correta": 0,
+          "explicacao": "Explicação..."
+        }
+      ]
+    }'></textarea>
+                <button class="btn" onclick="processImport()">Salvar Quiz</button>
+                <button class="btn btn-outline" onclick="toggleImport()">Cancelar</button>
+            </div>
+
+            <!-- My Quizzes List -->
+            <div class="card">
+                <div class="section-title">Meus Quizzes Salvos</div>
+                <ul id="quiz-list-container" class="quiz-list">
+                    <!-- Items injected by JS -->
+                    <li style="text-align: center; color: #7f8c8d; padding: 20px;">Nenhum quiz salvo ainda.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top: 40px; border-top: 1px solid #34495e; padding-top: 20px;">
+                <div class="section-title">Prompt para Gerar Questões na IA</div>
+                <p style="font-size: 13px; color: #95a5a6; line-height: 1.5;">
+                    Para criar novos quizzes, copie o prompt abaixo e peça para o ChatGPT ou Gemini gerar as questões
+                    para
+                    você.
+                    Depois, basta copiar o JSON gerado e colar no botão "Importar Novo Quiz" acima.
+                </p>
+                <div
+                    style="background: #10151d; padding: 15px; border-radius: 4px; font-size: 12px; color: #ecf0f1; font-family: monospace; position: relative;">
+                    <p style="margin: 0; white-space: pre-wrap;">Gere um arquivo JSON com 10 questões de múltipla
+                        escolha
+                        sobre [TEMA DESEJADO].
+                        O JSON deve seguir estritamente este formato, sem markdown ao redor:
+                        {
+                        "title": "Título do Quiz",
+                        "questions": [
+                        {
+                        "enunciado": "Texto da pergunta?",
+                        "alternativas": ["Opção A", "Opção B", "Opção C", "Opção D"],
+                        "correta": 0, // Índice da correta (0 a 3)
+                        "explicacao": "Explicação breve da resposta."
+                        }
+                        ]
+                        }</p>
+                    <button class="btn btn-sm btn-outline" style="position: absolute; top: 10px; right: 10px;"
+                        onclick="copyPrompt()">Copiar Prompt</button>
+                </div>
             </div>
         </div>
 
-        <!-- Actions -->
-        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-            <button class="btn" onclick="toggleImport()">+ Importar Novo Quiz (JSON)</button>
-            <button class="btn btn-danger" onclick="resetToDefault()">Restaurar Original</button>
-        </div>
-
-        <!-- Import Section -->
-        <div id="import-section" class="card">
-            <div class="section-title">Importar JSON</div>
-            <p style="font-size: 13px; color: #bdc3c7; margin-bottom: 10px;">
-                Cole o JSON abaixo. Formato esperado: <code>{ "title": "...", "questions": [...] }</code>
-            </p>
-            <textarea id="json-input" placeholder='{
-  "title": "Meu Quiz Personalizado",
-  "questions": [
-    {
-      "enunciado": "Pergunta 1...",
-      "alternativas": ["A", "B", "C", "D"],
-      "correta": 0,
-      "explicacao": "Explicação..."
-    }
-  ]
-}'></textarea>
-            <button class="btn" onclick="processImport()">Salvar Quiz</button>
-            <button class="btn btn-outline" onclick="toggleImport()">Cancelar</button>
-        </div>
-
-        <!-- My Quizzes List -->
-        <div class="card">
-            <div class="section-title">Meus Quizzes Salvos</div>
-            <ul id="quiz-list-container" class="quiz-list">
-                <!-- Items injected by JS -->
-                <li style="text-align: center; color: #7f8c8d; padding: 20px;">Nenhum quiz salvo ainda.</li>
-            </ul>
-        </div>
-
-        <div style="margin-top: 40px; border-top: 1px solid #34495e; padding-top: 20px;">
-            <div class="section-title">Prompt para Gerar Questões na IA</div>
-            <p style="font-size: 13px; color: #95a5a6; line-height: 1.5;">
-                Para criar novos quizzes, copie o prompt abaixo e peça para o ChatGPT ou Gemini gerar as questões para
-                você.
-                Depois, basta copiar o JSON gerado e colar no botão "Importar Novo Quiz" acima.
-            </p>
-            <div
-                style="background: #10151d; padding: 15px; border-radius: 4px; font-size: 12px; color: #ecf0f1; font-family: monospace; position: relative;">
-                <p style="margin: 0; white-space: pre-wrap;">Gere um arquivo JSON com 10 questões de múltipla escolha
-                    sobre [TEMA DESEJADO].
-                    O JSON deve seguir estritamente este formato, sem markdown ao redor:
-                    {
-                    "title": "Título do Quiz",
-                    "questions": [
-                    {
-                    "enunciado": "Texto da pergunta?",
-                    "alternativas": ["Opção A", "Opção B", "Opção C", "Opção D"],
-                    "correta": 0, // Índice da correta (0 a 3)
-                    "explicacao": "Explicação breve da resposta."
-                    }
-                    ]
-                    }</p>
-                <button class="btn btn-sm btn-outline" style="position: absolute; top: 10px; right: 10px;"
-                    onclick="copyPrompt()">Copiar Prompt</button>
+        <!-- TAB 2: History -->
+        <div id="history-section" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="section-title">Meu Histórico de Jogos</div>
+                <ul id="history-list" class="quiz-list">
+                    <li>Carregando...</li>
+                </ul>
             </div>
         </div>
-    </div>
 
-    <script src="admin.js"></script>
+        <!-- TAB 3: Leaderboard -->
+        <div id="leaderboard-section" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="section-title">Ranking Global (Top Jogadores)</div>
+                <ul id="leaderboard-list" class="quiz-list">
+                    <li>Carregando...</li>
+                </ul>
+            </div>
+        </div>
+
+        <script type="module" src="admin.js"></script>
 </body>
 
 </html>

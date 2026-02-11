@@ -13,9 +13,13 @@ export class GameScene extends Phaser.Scene {
         // Receives config from Menu (e.g., question count)
         this.questionCount = data.questionCount || 10;
 
+        // Custom Questions from Menu
+        const customQuestions = data.questions || null;
+
         // Initialize Domain Session
         this.gameSession = new GameSession();
-        this.repository = new QuestionRepository(); // Will use global QUESTION_BANK by default
+        // Pass custom questions to Repository (it handles null by fallback to global)
+        this.repository = new QuestionRepository(customQuestions);
 
         // UI Variables (Visual only)
         this.isProcessing = false;
@@ -289,6 +293,20 @@ export class GameScene extends Phaser.Scene {
 
         this.explanationPanel.add([shadow, bg, this.explanationIcon, this.explanationTitle, this.explanationText, nextText]);
         this.explanationPanel.setDepth(100);
+
+        // Make interactive
+        bg.setInteractive(new Phaser.Geom.Rectangle(-pWidth / 2, -pHeight / 2, pWidth, pHeight), Phaser.Geom.Rectangle.Contains);
+        bg.on('pointerdown', () => {
+            this.handleNextClick();
+        });
+    }
+
+    handleNextClick() {
+        if (this.explanationTimer) {
+            this.explanationTimer.remove();
+            this.explanationTimer = null;
+            this.nextQuestion();
+        }
     }
 
     loadQuestion() {
@@ -514,7 +532,8 @@ export class GameScene extends Phaser.Scene {
             this.particles.emit(this.cameras.main.width / 2, this.cameras.main.height - 300, COLORS.accent, 20);
         }
 
-        this.time.delayedCall(GAME_CONFIG.explanationDisplayTime, this.nextQuestion, [], this);
+        if (this.explanationTimer) this.explanationTimer.remove();
+        this.explanationTimer = this.time.delayedCall(GAME_CONFIG.explanationDisplayTime || 3000, this.nextQuestion, [], this);
     }
 
     nextQuestion() {

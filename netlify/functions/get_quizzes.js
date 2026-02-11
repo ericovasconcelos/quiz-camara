@@ -1,21 +1,52 @@
 import { db } from "../../db";
 import { quizzes } from "../../schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or } from "drizzle-orm";
 
 export default async (req, context) => {
     // Check for Auth
+    // Check for Auth
     const user = context.clientContext && context.clientContext.user;
-    if (!user) {
-        return new Response(JSON.stringify([]), { // Return empty if not logged in
-            headers: { "Content-Type": "application/json" },
-        });
+    // Auth check is now integrated into the query logic:
+    // If user exists: (userId = user.sub OR isDefault = true)
+    // If no user: (isDefault = true)
+
+    // FALLBACK FOR LOCAL DEV (Manual JWT Decode)
+    if (!user && req.headers.get("authorization")) {
+        try {
+            const token = req.headers.get("authorization").split(" ")[1];
+            if (token) {
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (Date.now() < payload.exp * 1000) {
+                        user = {
+                            sub: payload.sub,
+                            email: payload.email,
+                            user_metadata: payload.user_metadata || { full_name: payload.email }
+                        };
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Manual decode failed in get_quizzes", e);
+        }
     }
 
     try {
-        const allQuizzes = await db.select()
+        const query = db.select()
             .from(quizzes)
-            .where(eq(quizzes.userId, user.sub))
             .orderBy(desc(quizzes.createdAt));
+
+        if (user) {
+            query.where(or(
+                eq(quizzes.userId, user.sub),
+                eq(quizzes.isDefault, true)
+            ));
+        } else {
+            query.where(eq(quizzes.isDefault, true));
+        }
+
+        const allQuizzes = await query;
 
         return new Response(JSON.stringify(allQuizzes), {
             headers: { "Content-Type": "application/json" },

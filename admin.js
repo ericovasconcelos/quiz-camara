@@ -1,33 +1,33 @@
+import { quizRepository } from './infrastructure/QuizRepository.js';
+import { getAuthToken } from './utils/helpers.js';
+
 // Storage Keys
-const STORAGE_KEYS = {
-    QUIZZES: 'quizCamaraQuizzes',      // Array of quiz objects
-    CURRENT: 'quizCamaraCurrentQuiz'   // ID of the currently selected quiz (or null for default)
-};
+// const STORAGE_KEYS = {
+//     QUIZZES: 'quizCamaraQuizzes',      // Array of quiz objects
+//     CURRENT: 'quizCamaraCurrentQuiz'   // ID of the currently selected quiz (or null for default)
+// };
 
 // State
 let quizzes = [];
 let currentQuizId = null;
 
-async function getAuthToken() {
-    if (window.netlifyIdentity && window.netlifyIdentity.currentUser()) {
-        try {
-            return await window.netlifyIdentity.currentUser().jwt(true);
-        } catch (e) {
-            console.error("Error refreshing token", e);
-            return null;
-        }
-    }
-    return null;
-}
-
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    currentQuizId = localStorage.getItem(STORAGE_KEYS.CURRENT); // Keep current selection local
+    currentQuizId = quizRepository.getSelectedId(); // Keep current selection local
     loadQuizzes();
     renderCurrentStatus();
     renderQuizList();
     loadHistory(); // Initial load if logged in
 });
+
+// Expose functions to global scope for HTML onclick handlers
+window.toggleImport = toggleImport;
+window.processImport = processImport;
+window.selectQuiz = selectQuiz;
+window.deleteQuiz = deleteQuiz;
+window.resetToDefault = resetToDefault;
+window.copyPrompt = copyPrompt;
+// window.switchTab is already assigned below
 
 // UI: Tab Switching
 window.switchTab = function (tabName) {
@@ -49,33 +49,25 @@ window.switchTab = function (tabName) {
 };
 
 // Load from API
+// Load from API
 async function loadQuizzes() {
     try {
-        const token = await getAuthToken();
-        const headers = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch('/api/quizzes', { headers });
-        if (!res.ok) throw new Error('Falha ao carregar quizzes');
-        quizzes = await res.json();
+        // Repository handles Auth, API fetch, and Caching
+        quizzes = await quizRepository.getAll();
     } catch (e) {
         console.error(e);
-        // Fallback or empty
         quizzes = [];
-        showMessage('Não foi possível carregar seus quizzes do servidor.', 'error');
+        showMessage('Erro ao carregar quizzes.', 'error');
     }
-
-    // Sync Local Storage for Game Access (Hybrid approach)
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
 
     renderCurrentStatus();
     renderQuizList();
 }
 
 // Save to LocalStorage
-function saveQuizzes() {
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
-}
+// function saveQuizzes() {
+//    // Deprecated: Repository handles this
+// }
 
 // Toggle Import Section
 function toggleImport() {
@@ -113,30 +105,20 @@ async function processImport() {
             }
         });
 
-        // Save to API
-        const token = await getAuthToken();
-        if (!token) {
-            showMessage('Você precisa estar logado para salvar quizzes!', 'error');
-            return;
-        }
+        // Save via Repository
+        const payload = {
+            title: data.title,
+            config: data.config || {},
+            questions: data.questions
+        };
 
-        const res = await fetch('/api/quizzes/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                title: data.title,
-                config: data.config,
-                questions: data.questions
-            })
-        });
+        const savedQuiz = await quizRepository.add(payload);
+        console.log("Quiz saved (from repo):", savedQuiz);
 
-        if (!res.ok) throw new Error('Erro ao salvar no servidor');
-
-        const savedQuiz = await res.json();
-        quizzes.unshift(savedQuiz); // Add to local list
+        // Optimistic UI Update: Add to local list immediately
+        // (Server fetch might be stale momentarily, so we trust repo.add's return)
+        quizzes.unshift(savedQuiz);
+        console.log("Quizzes updated locally:", quizzes);
 
         // Success
         showMessage(`Quiz "${savedQuiz.title}" importado com sucesso!`, 'success');
@@ -145,8 +127,6 @@ async function processImport() {
         // Auto-select
         selectQuiz(savedQuiz.id);
 
-        // Sync Local
-        localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
         renderQuizList();
 
     } catch (e) {
@@ -157,7 +137,7 @@ async function processImport() {
 // Select a Quiz to play
 function selectQuiz(id) {
     currentQuizId = id;
-    localStorage.setItem(STORAGE_KEYS.CURRENT, id);
+    quizRepository.select(id);
     renderCurrentStatus();
     renderQuizList();
     showMessage('Quiz selecionado para jogar!', 'success');
@@ -166,19 +146,26 @@ function selectQuiz(id) {
 // Reset to Default (Original Questions)
 function resetToDefault() {
     currentQuizId = null;
-    localStorage.removeItem(STORAGE_KEYS.CURRENT);
+    quizRepository.resetSelection();
     renderCurrentStatus();
     renderQuizList();
     showMessage('Quiz original da Câmara restaurado.', 'success');
 }
 
 // Delete a Quiz
-function deleteQuiz(id) {
+async function deleteQuiz(id) {
     if (!confirm('Tem certeza? (Isso só afetará sua visão local por enquanto, exclusão de servidor não implementada)')) return;
 
-    quizzes = quizzes.filter(q => q.id !== id);
-    // Sync Local
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
+    // quizzes = quizzes.filter(q => q.id !== id);
+    // // Sync Local
+    // localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
+
+    await quizRepository.delete(id);
+    // Reload to reflect changes
+    loadQuizzes(); // This will refresh 'quizzes' variable and render list
+
+    // Note: Since loadQuizzes is async, we might want to await it if deleteQuiz was async, 
+    // but here we just trigger it. Ideally deleteQuiz should be async.
 
     if (currentQuizId == id) { // Loose equality for string/int ids
         resetToDefault();
@@ -243,7 +230,10 @@ function renderQuizList() {
                 `<button class="btn btn-sm" onclick="selectQuiz('${quiz.id}')">Jogar</button>` :
                 `<span style="color: var(--success); font-size: 12px; font-weight: bold; padding: 5px;">ATIVO</span>`
             }
-                <button class="btn btn-sm btn-danger" onclick="deleteQuiz('${quiz.id}')">Excluir</button>
+                ${quiz.isDefault ?
+                `<span style="color: #95a5a6; font-size: 12px; font-style: italic; padding: 5px;">🔒 Sistema</span>` :
+                `<button class="btn btn-sm btn-danger" onclick="deleteQuiz('${quiz.id}')">Excluir</button>`
+            }
             </div>
         `;
         list.appendChild(li);

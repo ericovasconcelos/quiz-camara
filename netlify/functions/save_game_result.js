@@ -54,40 +54,6 @@ export default async (req, context) => {
             return new Response("Missing score data", { status: 400 });
         }
 
-        // --- AUTO-MIGRATION FIX ---
-        // Using db.execute ensures we actually run the query using the working connection
-        try {
-            console.log("Running Auto-Fix Migration (Drizzle Execute)...");
-
-            // 1. Create Table
-            await db.execute(sql`
-                CREATE TABLE IF NOT EXISTS game_history (
-                    id SERIAL PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    player_name TEXT,
-                    quiz_title TEXT,
-                    score INTEGER NOT NULL,
-                    total INTEGER NOT NULL,
-                    percentage INTEGER NOT NULL,
-                    played_at TIMESTAMP DEFAULT NOW() NOT NULL
-                );
-            `);
-
-            // 2. Safe Alters
-            const addCol = async (q) => {
-                try { await db.execute(q); } catch (e) { console.log("Col exists/error:", e.message); }
-            };
-
-            await addCol(sql`ALTER TABLE game_history ADD COLUMN IF NOT EXISTS quiz_title TEXT;`);
-            await addCol(sql`ALTER TABLE game_history ADD COLUMN IF NOT EXISTS percentage INTEGER DEFAULT 0;`);
-
-            console.log("Auto-Fix Migration Done.");
-        } catch (migErr) {
-            console.error("Auto-Fix Failed:", migErr);
-            // We continue even if migration fails, hoping it was already done
-        }
-        // --------------------------------------
-
         const inserted = await db.insert(gameHistory).values({
             userId: user.sub,
             playerName: user.user_metadata.full_name || user.email,

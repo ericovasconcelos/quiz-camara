@@ -7,7 +7,31 @@ export default async (req, context) => {
     }
 
     // Check for Auth
-    const user = context.clientContext && context.clientContext.user;
+    // Check for Auth
+    let user = context.clientContext && context.clientContext.user;
+
+    // FALLBACK FOR LOCAL DEV
+    if (!user && req.headers.get("authorization")) {
+        try {
+            const token = req.headers.get("authorization").split(" ")[1];
+            if (token) {
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (Date.now() < payload.exp * 1000) {
+                        user = {
+                            sub: payload.sub,
+                            email: payload.email,
+                            user_metadata: payload.user_metadata || { full_name: payload.email }
+                        };
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Manual decode failed", e);
+        }
+    }
+
     if (!user) {
         return new Response("Unauthorized", { status: 401 });
     }

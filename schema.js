@@ -1,4 +1,4 @@
-import { pgTable, serial, text, jsonb, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, jsonb, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 
 export const quizzes = pgTable("quizzes", {
     id: serial("id").primaryKey(),
@@ -6,6 +6,7 @@ export const quizzes = pgTable("quizzes", {
     title: text("title").notNull(),
     settings: jsonb("settings"), // { timeLimit: number, questionLimit: number }
     questions: jsonb("questions").notNull(),
+    isDefault: boolean("is_default").default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

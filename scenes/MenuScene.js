@@ -1,6 +1,7 @@
 import { COLORS, VISUAL_CONFIG, STORAGE_KEY_HIGHSCORE } from '../constants.js';
 import { ParticleManager } from '../utils/ParticleManager.js';
 import { getAuthToken } from '../utils/helpers.js';
+import { quizRepository } from '../infrastructure/QuizRepository.js';
 
 // --- CENA DO MENU ---
 export class MenuScene extends Phaser.Scene {
@@ -54,22 +55,14 @@ export class MenuScene extends Phaser.Scene {
             fontStyle: '600'
         }).setOrigin(0.5).setShadow(0, 2, 'rgba(0,0,0,0.5)', 4);
 
-        // Custom Quiz Check
-        const currentQuizId = localStorage.getItem('quizCamaraCurrentQuiz');
+        // ... class MenuScene ...
+
+        // Custom Quiz Check via Repository
+        const currentQuiz = quizRepository.getSelectedQuiz();
         let subtitleText = 'Direito Constitucional & Regimento Interno';
 
-        if (currentQuizId) {
-            const quizzes = JSON.parse(localStorage.getItem('quizCamaraQuizzes') || '[]');
-            const customQuiz = quizzes.find(q => q.id === currentQuizId);
-            if (customQuiz) {
-                subtitleText = `Modo Personalizado: ${customQuiz.title}`;
-                localStorage.setItem('quizCamaraCurrentQuizTitle', customQuiz.title);
-            } else {
-                // ID exists but quiz not found? Default.
-                localStorage.setItem('quizCamaraCurrentQuizTitle', 'Direito Constitucional & Regimento Interno');
-            }
-        } else {
-            localStorage.setItem('quizCamaraCurrentQuizTitle', 'Direito Constitucional & Regimento Interno');
+        if (currentQuiz) {
+            subtitleText = `Modo Personalizado: ${currentQuiz.title}`;
         }
 
 
@@ -81,7 +74,7 @@ export class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // 5. High Score Badge (Placeholder, will update async)
-        const badgeY = 480;
+        const badgeY = 450;
         this.highScoreContainer = this.add.container(width / 2, badgeY);
         this.highScoreContainer.visible = false;
 
@@ -107,12 +100,8 @@ export class MenuScene extends Phaser.Scene {
         // Assuming QUESTION_BANK is globally available on window as set in questions.js
         let availableQuestionsCount = (window.QUESTION_BANK && window.QUESTION_BANK.length) || 0;
 
-        if (currentQuizId) {
-            const quizzes = JSON.parse(localStorage.getItem('quizCamaraQuizzes') || '[]');
-            const customQuiz = quizzes.find(q => q.id === currentQuizId);
-            if (customQuiz && customQuiz.questions) {
-                availableQuestionsCount = customQuiz.questions.length;
-            }
+        if (currentQuiz && currentQuiz.questions) {
+            availableQuestionsCount = currentQuiz.questions.length;
         }
 
         // Recuperar preferência do usuário ou definir padrão (10 ou total se for menor)
@@ -302,8 +291,20 @@ export class MenuScene extends Phaser.Scene {
 
             this.cameras.main.fadeOut(500, 0, 0, 0);
             this.time.delayedCall(500, () => {
-                // Pass selectedCount to GameScene
-                this.scene.start('GameScene', { questionCount: selectedCount });
+                // Pass selectedCount AND custom questions to GameScene
+                // Use Repository to get fresh data
+                const currentQuiz = quizRepository.getSelectedQuiz();
+                let customQuestions = null;
+
+                if (currentQuiz && currentQuiz.questions && currentQuiz.questions.length > 0) {
+                    customQuestions = currentQuiz.questions;
+                    console.log("Starting Custom Quiz:", currentQuiz.title);
+                }
+
+                this.scene.start('GameScene', {
+                    questionCount: selectedCount,
+                    questions: customQuestions
+                });
             });
         });
 
@@ -350,8 +351,8 @@ export class MenuScene extends Phaser.Scene {
         adminBtn.on('pointerout', () => adminBtn.setColor('#576574'));
         adminBtn.on('pointerdown', () => window.location.href = 'admin.html');
 
-        // 9. Leaderboard Button (Top Right)
-        const lbBtn = this.add.text(width - 40, 40, '🏆', { fontSize: '28px' })
+        // 9. Leaderboard Button (Moved to Top Left to avoid Login overlap)
+        const lbBtn = this.add.text(40, 40, '🏆', { fontSize: '28px' })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true });
 
