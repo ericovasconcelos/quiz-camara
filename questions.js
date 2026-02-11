@@ -2,7 +2,7 @@
 // Este arquivo contém todas as perguntas do quiz.
 // Cada pergunta tem: enunciado, alternativas, correta (índice 0-3), e explicacao
 
-const QUESTION_BANK = [
+window.QUESTION_BANK = [
     // --- DIREITO CONSTITUCIONAL ---
     {
         enunciado: 'Qual é a função principal do Poder Legislativo?',

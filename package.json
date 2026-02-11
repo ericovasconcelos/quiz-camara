@@ -5,6 +5,7 @@
   "main": "admin.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "netlify dev",
     "build": "node migrate.js"
   },
   "repository": {
@@ -21,10 +22,10 @@
   "homepage": "https://github.com/ericovasconcelos/quiz-camara#readme",
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
-    "@netlify/neon": "^0.1.2",
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.8"
+    "drizzle-kit": "^0.31.8",
+    "netlify-cli": "^23.14.0"
   }
 }
