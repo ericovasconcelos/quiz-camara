@@ -74,9 +74,24 @@ export class QuizRepository {
     }
 
     async delete(id) {
-        // Note: Server-side delete not implemented in this scope, so strictly local for now?
-        // User instruction implies server side exist, but previous code only did local.
-        // We will simulate local delete until API endpoint exists.
+        const token = await this._getToken();
+        if (!token) throw new Error("User must be logged in to delete a quiz.");
+
+        const res = await fetch('/api/quizzes/delete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ id: id })
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to delete quiz");
+        }
+
+        // Update Local Cache optimistically
         const current = this._loadFromLocal();
         const updated = current.filter(q => q.id !== id);
         this._saveToLocal(updated);

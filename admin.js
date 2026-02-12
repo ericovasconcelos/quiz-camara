@@ -154,25 +154,26 @@ function resetToDefault() {
 
 // Delete a Quiz
 async function deleteQuiz(id) {
-    if (!confirm('Tem certeza? (Isso só afetará sua visão local por enquanto, exclusão de servidor não implementada)')) return;
+    if (!confirm('Tem certeza que deseja excluir este quiz da sua conta?')) return;
 
-    // quizzes = quizzes.filter(q => q.id !== id);
-    // // Sync Local
-    // localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
+    try {
+        await quizRepository.delete(id);
 
-    await quizRepository.delete(id);
-    // Reload to reflect changes
-    loadQuizzes(); // This will refresh 'quizzes' variable and render list
+        // Optimistic UI Update
+        quizzes = quizzes.filter(q => q.id !== id);
 
-    // Note: Since loadQuizzes is async, we might want to await it if deleteQuiz was async, 
-    // but here we just trigger it. Ideally deleteQuiz should be async.
-
-    if (currentQuizId == id) { // Loose equality for string/int ids
-        resetToDefault();
-    } else {
-        renderQuizList();
+        if (currentQuizId == id) {
+            resetToDefault();
+        } else {
+            renderQuizList();
+            showMessage('Quiz excluído com sucesso!', 'success');
+        }
+    } catch (e) {
+        console.error(e);
+        showMessage('Erro ao excluir: ' + e.message, 'error');
     }
 }
+
 
 // UI Rendering - Current Status
 function renderCurrentStatus() {

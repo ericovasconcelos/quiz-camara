@@ -1,14 +1,14 @@
 import { db } from "../../db";
 import { quizzes } from "../../schema";
-import { desc, eq, or } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export default async (req, context) => {
-    // Check for Auth
+    if (req.method !== "DELETE") {
+        return new Response("Method Not Allowed", { status: 405 });
+    }
+
     // Check for Auth
     let user = context.clientContext && context.clientContext.user;
-    // Auth check is now integrated into the query logic:
-    // If user exists: (userId = user.sub OR isDefault = true)
-    // If no user: (isDefault = true)
 
     // FALLBACK FOR LOCAL DEV (Manual JWT Decode)
     if (!user && req.headers.get("authorization")) {
@@ -28,30 +28,41 @@ export default async (req, context) => {
                 }
             }
         } catch (e) {
-            console.error("Manual decode failed in get_quizzes", e);
+            console.error("Manual decode failed in delete_quiz", e);
         }
     }
 
-    try {
-        const query = db.select()
-            .from(quizzes)
-            .orderBy(desc(quizzes.createdAt));
+    if (!user) {
+        return new Response("Unauthorized", { status: 401 });
+    }
 
-        if (user) {
-            query.where(or(
-                eq(quizzes.userId, user.sub),
-                eq(quizzes.isDefault, true)
-            ));
-        } else {
-            query.where(eq(quizzes.isDefault, true));
+    try {
+        const body = await req.json();
+        const quizId = body.id;
+
+        if (!quizId) {
+            return new Response(JSON.stringify({ error: "Missing quiz ID" }), { status: 400 });
         }
 
-        const allQuizzes = await query;
+        // Execute Delete
+        // Ensure user can only delete their own quizzes
+        const result = await db.delete(quizzes)
+            .where(and(
+                eq(quizzes.id, quizId),
+                eq(quizzes.userId, user.sub)
+            ))
+            .returning();
 
-        return new Response(JSON.stringify(allQuizzes), {
+        if (result.length === 0) {
+            return new Response(JSON.stringify({ error: "Quiz not found or unauthorized" }), { status: 404 });
+        }
+
+        return new Response(JSON.stringify({ message: "Quiz deleted successfully", id: quizId }), {
             headers: { "Content-Type": "application/json" },
         });
+
     } catch (error) {
+        console.error("Delete error:", error);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
@@ -60,5 +71,5 @@ export default async (req, context) => {
 };
 
 export const config = {
-    path: "/api/quizzes"
+    path: "/api/quizzes/delete"
 };
