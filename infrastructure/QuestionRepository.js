@@ -1,22 +1,13 @@
+import { questions } from '../questions.js';
 import { Question } from '../domain/entities.js';
-
-// We will load the Global variable QUESTION_BANK from questions.js
-// Since questions.js is a script loaded in HTML, it defines 'const QUESTION_BANK' globally.
-// Ideally, we would modularize questions.js, but to minimize changes to data files users might edit, 
-// we can also accept it as an argument or expect it on window.
-// However, creating a proper module adapter is better for 'Clean Code'.
 
 /**
  * Repository for fetching questions.
  */
 export class QuestionRepository {
     constructor(rawQuestions) {
-        // If rawQuestions is not provided, try to find it in global scope (legacy support)
-        if (!rawQuestions && typeof window !== 'undefined' && window.QUESTION_BANK) {
-            this.rawQuestions = window.QUESTION_BANK;
-        } else {
-            this.rawQuestions = rawQuestions || [];
-        }
+        // Use provided questions or default to the imported static list
+        this.rawQuestions = rawQuestions || questions;
     }
 
     /**

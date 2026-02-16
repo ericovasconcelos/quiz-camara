@@ -2,6 +2,7 @@ import { COLORS, VISUAL_CONFIG, STORAGE_KEY_HIGHSCORE } from '../constants.js';
 import { ParticleManager } from '../utils/ParticleManager.js';
 import { getAuthToken } from '../utils/helpers.js';
 import { quizRepository } from '../infrastructure/QuizRepository.js';
+import { questions } from '../questions.js';
 
 // --- CENA DO MENU ---
 export class MenuScene extends Phaser.Scene {
@@ -97,8 +98,8 @@ export class MenuScene extends Phaser.Scene {
 
         // 6. Seletor de Quantidade de Questões
         // Calcular o total de questões disponíveis no quiz atual
-        // Assuming QUESTION_BANK is globally available on window as set in questions.js
-        let availableQuestionsCount = (window.QUESTION_BANK && window.QUESTION_BANK.length) || 0;
+        // Use imported questions module as default
+        let availableQuestionsCount = questions.length || 0;
 
         if (currentQuiz && currentQuiz.questions) {
             availableQuestionsCount = currentQuiz.questions.length;
